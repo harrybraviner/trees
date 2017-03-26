@@ -1,4 +1,5 @@
 import unittest
+import numpy as np
 from tree_node import TreeNode, uniquify_list, uniquify_index_list, CostTracker
 
 class MiscTests(unittest.TestCase):
@@ -100,22 +101,41 @@ class TreeNodeTests(unittest.TestCase):
 
     def test_report_best_split_basic(self):
         tn = TreeNode([[1.0, 2.0], [-2.0, 2.0]], [7.0, 4.0])
-        best = tn.report_best_split_cost();
+        best = tn.report_best_split_cost(min_data_per_node = 1);
         self.assertEqual(0.0, best)
 
     def test_report_best_split_complicated(self):
         tn = TreeNode([[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0],
                        [4.0, 5.0, 6.0, 4.0, 8.0, 9.0, 9.0, 9.0, 1.0, 2.0,  7.0,  4.0 ]],
                        [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0,  1.0,  1.0 ])
-        best = tn.report_best_split_cost();
+        best = tn.report_best_split_cost(min_data_per_node = 1);
         self.assertEqual(7.0/8.0, best)
 
     def test_enact_best_split_basic(self):
         tn = TreeNode([[1.0, 2.0], [-2.0, 2.0]], [7.0, 4.0])
-        tn.enact_best_split()
+        tn.enact_best_split(min_data_per_node = 1)
         self.assertEqual(0.0, tn.get_cost())
         self.assertEqual(0.0, tn.left_child.get_cost())
         self.assertEqual(0.0, tn.right_child.get_cost())
         self.assertEqual(1, tn.left_child.N)
         self.assertEqual(1, tn.right_child.N)
 
+
+    def test_checkerboard_split(self):
+        x1_vals = np.arange(0, 1.0, 0.05).tolist()
+        x2_vals = np.arange(0, 1.0, 0.05).tolist()
+        x0predictors = [x for x in x1_vals for y in x2_vals]
+        x1predictors = [y for x in x1_vals for y in x2_vals]
+        predictors = [x0predictors, x1predictors]
+        responses = [(0.0 if x < 0.5 else 0.1) if y < 0.5 else (3.1 if x < 0.5 else 2.9) for x in x1_vals for y in x2_vals]
+        tn = TreeNode(predictors, responses)
+        self.assertEqual(True, tn.enact_best_split())
+        self.assertEqual(0.05, tn.left_child.unsplit_prediction)
+        self.assertEqual(3.00, tn.right_child.unsplit_prediction)
+        self.assertEqual(True, tn.enact_best_split())
+        self.assertEqual(True, tn.enact_best_split())
+        self.assertEqual(0.0, tn.left_child.left_child.unsplit_prediction)
+        self.assertAlmostEqual(0.1, tn.left_child.right_child.unsplit_prediction)
+        self.assertAlmostEqual(3.1, tn.right_child.left_child.unsplit_prediction)
+        self.assertAlmostEqual(2.9, tn.right_child.right_child.unsplit_prediction)
+        self.assertEqual(False, tn.enact_best_split())

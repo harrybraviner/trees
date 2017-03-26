@@ -132,41 +132,50 @@ class TreeNode:
         self.best_split_locations[predictor_index] = best_split_location
         self.best_prediction_pairs[predictor_index] = (best_left_prediction, best_right_prediction)
 
-    def report_best_split_cost(self):
+    def report_best_split_cost(self, min_data_per_node = 10):
         if self.is_leaf():
-            # Ensure that we know the result of splitting on each of the indices
-            for i in range(self.p):
-                if self.best_costs[i] == None:
-                    self.find_best_split(i)
-            return min(self.best_costs)
-        else:
-            left_splitting_cost = self.left_child.report_best_split_cost()
-            right_splitting_cost = self.right_child.report_best_split_cost()
-            if left_splitting_cost == None:
-                return right_splitting_cost
-            elif right_splitting_cost == None:
-                return left_splitting_cost
+            if self.N > min_data_per_node:
+                # Ensure that we know the result of splitting on each of the indices
+                for i in range(self.p):
+                    if self.best_costs[i] == None:
+                        self.find_best_split(i)
+                return min(self.best_costs)
             else:
-                return min(left_splitting_cost, right_splitting_cost)
+                return self.unsplit_cost
+        else:
+            left_splitting_cost = self.left_child.report_best_split_cost(min_data_per_node)
+            right_splitting_cost = self.right_child.report_best_split_cost(min_data_per_node)
+            return min(left_splitting_cost + self.right_child.get_cost(), self.left_child.get_cost() + right_splitting_cost)
 
-    def enact_best_split(self):
+    def enact_best_split(self, min_data_per_node = 10):
         if self.is_leaf():
             # Ensure that we know the result of splitting on each of the indices
-            for i in range(self.p):
-                if self.best_costs[i] == None:
-                    self.find_best_split(i)
-            best_split_index = np.argmin(self.best_costs)
-            best_assignment = self.best_assignments[best_split_index]
-            left_predictors  = [[pred[i] for i in range(self.N) if best_assignment[i] == 'L'] for pred in self.predictors]
-            right_predictors = [[pred[i] for i in range(self.N) if best_assignment[i] == 'R'] for pred in self.predictors]
-            left_responses  = [self.responses[i] for i in range(self.N) if best_assignment[i] == 'L']
-            right_responses = [self.responses[i] for i in range(self.N) if best_assignment[i] == 'R']
-            self.left_child  = TreeNode(left_predictors,  left_responses)
-            self.right_child = TreeNode(right_predictors, right_responses)
+            if self.N > min_data_per_node:
+                for i in range(self.p):
+                    if self.best_costs[i] == None:
+                        self.find_best_split(i)
+                best_split_index = np.argmin(self.best_costs)
+                best_assignment = self.best_assignments[best_split_index]
+                # Note the 'safety factors' to try to halt 'pointless splitting' early
+                if self.best_costs[best_split_index] < self.unsplit_cost * (1.0 - 1e-8) and self.best_costs[best_split_index] - self.unsplit_cost < -1e-10:
+                    left_predictors  = [[pred[i] for i in range(self.N) if best_assignment[i] == 'L'] for pred in self.predictors]
+                    right_predictors = [[pred[i] for i in range(self.N) if best_assignment[i] == 'R'] for pred in self.predictors]
+                    left_responses  = [self.responses[i] for i in range(self.N) if best_assignment[i] == 'L']
+                    right_responses = [self.responses[i] for i in range(self.N) if best_assignment[i] == 'R']
+                    self.left_child  = TreeNode(left_predictors,  left_responses)
+                    self.right_child = TreeNode(right_predictors, right_responses)
+                    return True
+                else:
+                    # In this case we can't make this leaf node any better by adding a split.
+                    # (But since we've gotten here, that must be true for all leaf nodes.)
+                    return False
+            else:
+                return False
         else:
-            left_splitting_cost = self.left_child.report_best_split_cost()
-            right_splitting_cost = self.right_child.report_best_split_cost()
-            if left_splitting_cost == None or left_splitting_cost <= right_splitting_cost:
-                self.right_child.enact_best_split()
-            elif right_splitting_cost == None or right_splitting_cost < left_splitting_cost:
-                self.left_child.enact_best_split()
+            left_splitting_cost = self.left_child.report_best_split_cost(min_data_per_node)
+            right_splitting_cost = self.right_child.report_best_split_cost(min_data_per_node)
+            if left_splitting_cost + self.right_child.get_cost() <= self.left_child.get_cost() + right_splitting_cost:
+                return self.left_child.enact_best_split(min_data_per_node)
+            else:
+                return self.right_child.enact_best_split(min_data_per_node)
+
