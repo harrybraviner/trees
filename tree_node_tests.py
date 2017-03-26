@@ -53,3 +53,30 @@ class CostTrackerTests(unittest.TestCase):
         self.assertEqual(0.5, ct.get_left_cost())
         self.assertEqual(0.0, ct.get_right_cost())
         self.assertEqual(0.5, ct.get_total_cost())
+
+class TreeNodeTests(unittest.TestCase):
+    def test_bad_construction(self):
+        with self.assertRaises(ValueError):
+            tn = TreeNode([[1.0, 2.0], [1.0]], [1.0, 2.0])
+        with self.assertRaises(ValueError):
+            tn = TreeNode([[1.0, 2.0], [1.0, 2.0]], [1.0])
+        with self.assertRaises(ValueError):
+            tn = TreeNode([[1.0], [1.0, 2.0]], [1.0, 2.0])
+
+    def test_bad_split_index(self):
+        tn = TreeNode([[1.0, 2.0], [1.0, 2.0]], [1.0, 2.0])
+        with self.assertRaises(ValueError):
+            tn.find_best_split(2)
+        with self.assertRaises(ValueError):
+            tn.find_best_split(-1)
+
+    def test_splits_basic(self):
+        tn = TreeNode([[1.0, 2.0], [-2.0, 2.0]], [7.0, 4.0])
+        tn.find_best_split(0)
+        self.assertEqual(['L', 'R'], tn.best_assignments[0])
+        self.assertEqual(0.0, tn.best_costs[0])
+        self.assertEqual(1.5, tn.best_split_locations[0])
+        tn.find_best_split(1)
+        self.assertEqual(['L', 'R'], tn.best_assignments[1])
+        self.assertEqual(0.0, tn.best_costs[1])
+        self.assertEqual(0.0, tn.best_split_locations[1])

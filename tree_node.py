@@ -66,6 +66,9 @@ class TreeNode:
 
         self.left_child = None
         self.right_child = None
+
+        self.predictors = predictors
+        self.responses = responses
         
         self.unsplit_MSE = np.var(predictors)
 
@@ -77,27 +80,38 @@ class TreeNode:
 
         self.left_right_list = [0 for i in range(self.N)]  # This will store whether a particular datum is in the left or right child tree
 
+        self.best_costs = [None for i in range(self.p)]
+        self.best_assignments = [None for i in range(self.p)]
+        self.best_split_locations = [None for i in range(self.p)]
+
     def find_best_split(self, predictor_index):
+        if predictor_index < 0 or predictor_index >= self.p:
+            raise ValueError("predictor_index out of range ({}, should be between 0 and {} inclusive).".format(predictor_index, self.p-1))
         pred_values = self.sorted_predictor_index_lists[predictor_index]
         unique_pred_values = uniquify_index_list(pred_values)
-        cost_tracker = CostTracker(predictors)
+        cost_tracker = CostTracker(self.responses)
         running_best_cost = cost_tracker.get_total_cost()
 
         # Everything starts off assigned to the right-hand split
-        right_to_left_move_times = [self.N + 1 for x in predictors]
+        right_to_left_move_times = [self.N + 1 for x in self.predictors[predictor_index]]
         running_move_time = 0
         best_move_time = 0
+        best_split_location = None
 
         # Walk through unique_pred_values, 'moving' from the right to left bucket one at a time
         for i in range(len(unique_pred_values)-1):
             indices_to_move = unique_pred_values[i][1]
             for j in indices_to_move:
-                cost_tracker.move_value_right_to_left(predictors[j])
+                cost_tracker.move_value_right_to_left(self.responses[j])
                 right_to_left_move_times[j] = running_move_time
             running_move_time += 1
             if cost_tracker.get_total_cost() < running_best_cost:
+                # We've found a new best split
                 running_best_cost = cost_tracker.get_total_cost()
                 best_move_time = running_move_time
+                best_split_location = 0.5*(unique_pred_values[i][0] + unique_pred_values[i+1][0])
          
-         # Now I need some way to 'save' this split, while I check the other splits
-        
+        # Now cache the best split that exists for this predictor
+        self.best_costs[predictor_index] = running_best_cost
+        self.best_assignments[predictor_index] = ['L' if x < best_move_time else 'R' for x in right_to_left_move_times]
+        self.best_split_locations[predictor_index] = best_split_location
