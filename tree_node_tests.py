@@ -76,7 +76,37 @@ class TreeNodeTests(unittest.TestCase):
         self.assertEqual(['L', 'R'], tn.best_assignments[0])
         self.assertEqual(0.0, tn.best_costs[0])
         self.assertEqual(1.5, tn.best_split_locations[0])
+        self.assertEqual((7.0, 4.0), tn.best_prediction_pairs[0])
         tn.find_best_split(1)
         self.assertEqual(['L', 'R'], tn.best_assignments[1])
         self.assertEqual(0.0, tn.best_costs[1])
         self.assertEqual(0.0, tn.best_split_locations[1])
+        self.assertEqual((7.0, 4.0), tn.best_prediction_pairs[1])
+
+    def test_splits_complicated(self):
+        tn = TreeNode([[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0],
+                       [4.0, 5.0, 6.0, 4.0, 8.0, 9.0, 9.0, 9.0, 1.0, 2.0,  7.0,  4.0 ]],
+                       [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0,  1.0,  1.0 ])
+        tn.find_best_split(0)
+        self.assertEqual(['L', 'L', 'L', 'L', 'L', 'L', 'L', 'L', 'R', 'R', 'R', 'R'], tn.best_assignments[0])
+        self.assertEqual(7.0/8.0, tn.best_costs[0])
+        self.assertEqual(8.5, tn.best_split_locations[0])
+        self.assertEqual((1.0/8.0, 1.0), tn.best_prediction_pairs[0])
+        tn.find_best_split(1)
+        self.assertEqual(['L', 'R', 'R', 'L', 'R', 'R', 'R', 'R', 'L', 'L', 'R', 'L'], tn.best_assignments[1])
+        self.assertEqual((4.0/5.0 + 42.0/49.0), tn.best_costs[1])
+        self.assertEqual(4.5, tn.best_split_locations[1])
+        self.assertEqual((4.0/5.0, 1.0/7.0), tn.best_prediction_pairs[1])
+
+    def test_report_best_split_basic(self):
+        tn = TreeNode([[1.0, 2.0], [-2.0, 2.0]], [7.0, 4.0])
+        best = tn.report_best_split_cost();
+        self.assertEqual(0.0, best)
+
+    def test_report_best_split_complicated(self):
+        tn = TreeNode([[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0],
+                       [4.0, 5.0, 6.0, 4.0, 8.0, 9.0, 9.0, 9.0, 1.0, 2.0,  7.0,  4.0 ]],
+                       [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0,  1.0,  1.0 ])
+        best = tn.report_best_split_cost();
+        self.assertEqual(7.0/8.0, best)
+

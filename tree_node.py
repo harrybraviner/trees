@@ -83,6 +83,7 @@ class TreeNode:
         self.best_costs = [None for i in range(self.p)]
         self.best_assignments = [None for i in range(self.p)]
         self.best_split_locations = [None for i in range(self.p)]
+        self.best_prediction_pairs = [None for i in range(self.p)]
 
     def find_best_split(self, predictor_index):
         if predictor_index < 0 or predictor_index >= self.p:
@@ -97,6 +98,8 @@ class TreeNode:
         running_move_time = 0
         best_move_time = 0
         best_split_location = None
+        best_left_prediction = None
+        best_right_prediction = None
 
         # Walk through unique_pred_values, 'moving' from the right to left bucket one at a time
         for i in range(len(unique_pred_values)-1):
@@ -110,8 +113,28 @@ class TreeNode:
                 running_best_cost = cost_tracker.get_total_cost()
                 best_move_time = running_move_time
                 best_split_location = 0.5*(unique_pred_values[i][0] + unique_pred_values[i+1][0])
+                best_left_prediction = cost_tracker.get_left_mean()
+                best_right_prediction = cost_tracker.get_right_mean()
          
         # Now cache the best split that exists for this predictor
         self.best_costs[predictor_index] = running_best_cost
         self.best_assignments[predictor_index] = ['L' if x < best_move_time else 'R' for x in right_to_left_move_times]
         self.best_split_locations[predictor_index] = best_split_location
+        self.best_prediction_pairs[predictor_index] = (best_left_prediction, best_right_prediction)
+
+    def report_best_split_cost(self):
+        if self.left_child == None and self.right_child == None:
+            # Ensure that we know the result of splitting on each of the indices
+            for i in range(self.p):
+                if self.best_costs[i] == None:
+                    self.find_best_split(i)
+            return min(self.best_costs)
+        else:
+            left_splitting_cost = self.left_child.report_best_split()
+            right_splitting_cost = self.right_child.report_best_split()
+            if left_splitting_cost == None:
+                return right_splitting_cost
+            elif right_splitting_cost == None:
+                return left_splitting_cost
+            else:
+                return min(left_splitting_cost, right_splitting_cost)
