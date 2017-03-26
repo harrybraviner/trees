@@ -130,11 +130,33 @@ class TreeNode:
                     self.find_best_split(i)
             return min(self.best_costs)
         else:
-            left_splitting_cost = self.left_child.report_best_split()
-            right_splitting_cost = self.right_child.report_best_split()
+            left_splitting_cost = self.left_child.report_best_split_cost()
+            right_splitting_cost = self.right_child.report_best_split_cost()
             if left_splitting_cost == None:
                 return right_splitting_cost
             elif right_splitting_cost == None:
                 return left_splitting_cost
             else:
                 return min(left_splitting_cost, right_splitting_cost)
+
+    def enact_best_split(self):
+        if self.left_child == None and self.right_child == None:
+            # Ensure that we know the result of splitting on each of the indices
+            for i in range(self.p):
+                if self.best_costs[i] == None:
+                    self.find_best_split(i)
+            best_split_index = np.argmin(self.best_costs)
+            best_assignment = self.best_assignments[best_split_index]
+            left_predictors  = [[pred[i] for i in range(self.N) if best_assignments[i] == 'L'] for pred in self.predictors]
+            right_predictors = [[pred[i] for i in range(self.N) if best_assignments[i] == 'R'] for pred in self.predictors]
+            left_responses  = [self.responses[i] for i in range(self.N) if best_assignments[i] == 'L']
+            right_responses = [self.responses[i] for i in range(self.N) if best_assignments[i] == 'R']
+            self.left_child  = TreeNode(left_predictors,  left_responses)
+            self.right_child = TreeNode(right_predictors, right_responses)
+        else:
+            left_splitting_cost = self.left_child.report_best_split_cost()
+            right_splitting_cost = self.right_child.report_best_split_cost()
+            if left_splitting_cost == None or left_splitting_cost <= right_splitting_cost:
+                self.right_child.enact_best_split()
+            elif right_splitting_cost == None or right_splitting_cost < left_splitting_cost:
+                self.left_child.enact_best_split()
