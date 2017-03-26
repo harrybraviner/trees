@@ -84,14 +84,20 @@ class TreeNode:
         running_best_cost = cost_tracker.get_total_cost()
 
         # Everything starts off assigned to the right-hand split
-        running_left_right_assignments = [+1 for x in predictors]
-        running_best_assignments = running_left_right_assignments   # FIXME - how am I going to avoid repeatedly copying this list, making this bit O(N^2)?
+        right_to_left_move_times = [self.N + 1 for x in predictors]
+        running_move_time = 0
+        best_move_time = 0
 
         # Walk through unique_pred_values, 'moving' from the right to left bucket one at a time
-#        for i in range(len(unique_pred_values)-1):
-#            indices_to_move = unique_pred_values[i][1]
-#            for j in indices_to_move:
-#                cost_tracker.move_value_right_to_left(predictors[j])
-#            if cost_tracker.get_total_cost() < running_best_cost:
-#                running_best_cost = 
+        for i in range(len(unique_pred_values)-1):
+            indices_to_move = unique_pred_values[i][1]
+            for j in indices_to_move:
+                cost_tracker.move_value_right_to_left(predictors[j])
+                right_to_left_move_times[j] = running_move_time
+            running_move_time += 1
+            if cost_tracker.get_total_cost() < running_best_cost:
+                running_best_cost = cost_tracker.get_total_cost()
+                best_move_time = running_move_time
+         
+         # Now I need some way to 'save' this split, while I check the other splits
         
