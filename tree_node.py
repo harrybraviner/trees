@@ -70,7 +70,8 @@ class TreeNode:
         self.predictors = predictors
         self.responses = responses
         
-        self.unsplit_MSE = np.var(predictors)
+        self.unsplit_prediction = np.mean(responses)
+        self.unsplit_cost = np.sum((responses - self.unsplit_prediction)**2)
 
         # Make a sorted list of each predictor
         self.sorted_predictor_index_lists = [
@@ -84,6 +85,15 @@ class TreeNode:
         self.best_assignments = [None for i in range(self.p)]
         self.best_split_locations = [None for i in range(self.p)]
         self.best_prediction_pairs = [None for i in range(self.p)]
+
+    def is_leaf(self):
+        return self.left_child == None and self.right_child == None
+
+    def get_cost(self):
+        if self.is_leaf():
+            return self.unsplit_cost
+        else:
+            return self.left_child.get_cost() + self.right_child.get_cost()
 
     def find_best_split(self, predictor_index):
         if predictor_index < 0 or predictor_index >= self.p:
@@ -123,7 +133,7 @@ class TreeNode:
         self.best_prediction_pairs[predictor_index] = (best_left_prediction, best_right_prediction)
 
     def report_best_split_cost(self):
-        if self.left_child == None and self.right_child == None:
+        if self.is_leaf():
             # Ensure that we know the result of splitting on each of the indices
             for i in range(self.p):
                 if self.best_costs[i] == None:
@@ -140,17 +150,17 @@ class TreeNode:
                 return min(left_splitting_cost, right_splitting_cost)
 
     def enact_best_split(self):
-        if self.left_child == None and self.right_child == None:
+        if self.is_leaf():
             # Ensure that we know the result of splitting on each of the indices
             for i in range(self.p):
                 if self.best_costs[i] == None:
                     self.find_best_split(i)
             best_split_index = np.argmin(self.best_costs)
             best_assignment = self.best_assignments[best_split_index]
-            left_predictors  = [[pred[i] for i in range(self.N) if best_assignments[i] == 'L'] for pred in self.predictors]
-            right_predictors = [[pred[i] for i in range(self.N) if best_assignments[i] == 'R'] for pred in self.predictors]
-            left_responses  = [self.responses[i] for i in range(self.N) if best_assignments[i] == 'L']
-            right_responses = [self.responses[i] for i in range(self.N) if best_assignments[i] == 'R']
+            left_predictors  = [[pred[i] for i in range(self.N) if best_assignment[i] == 'L'] for pred in self.predictors]
+            right_predictors = [[pred[i] for i in range(self.N) if best_assignment[i] == 'R'] for pred in self.predictors]
+            left_responses  = [self.responses[i] for i in range(self.N) if best_assignment[i] == 'L']
+            right_responses = [self.responses[i] for i in range(self.N) if best_assignment[i] == 'R']
             self.left_child  = TreeNode(left_predictors,  left_responses)
             self.right_child = TreeNode(right_predictors, right_responses)
         else:

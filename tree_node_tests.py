@@ -110,3 +110,12 @@ class TreeNodeTests(unittest.TestCase):
         best = tn.report_best_split_cost();
         self.assertEqual(7.0/8.0, best)
 
+    def test_enact_best_split_basic(self):
+        tn = TreeNode([[1.0, 2.0], [-2.0, 2.0]], [7.0, 4.0])
+        tn.enact_best_split()
+        self.assertEqual(0.0, tn.get_cost())
+        self.assertEqual(0.0, tn.left_child.get_cost())
+        self.assertEqual(0.0, tn.right_child.get_cost())
+        self.assertEqual(1, tn.left_child.N)
+        self.assertEqual(1, tn.right_child.N)
+
