@@ -72,6 +72,8 @@ class TreeNode:
         
         self.unsplit_prediction = np.mean(responses)
         self.unsplit_cost = np.sum((responses - self.unsplit_prediction)**2)
+        self.split_index = None
+        self.split_value = None
 
         # Make a sorted list of each predictor
         self.sorted_predictor_index_lists = [
@@ -94,6 +96,20 @@ class TreeNode:
             return self.unsplit_cost
         else:
             return self.left_child.get_cost() + self.right_child.get_cost()
+
+    def predict(self, predictors):
+        if len(predictors) != self.p:
+            raise ValueError("Number of predictors ({}) is not equal to {}.".format(len(predictors), self.p))
+        
+        if self.is_leaf():
+            return self.unsplit_prediction
+        else:
+            x = predictors[self.split_index]
+            if x <= self.split_value:
+                return self.left_child.predict(predictors)
+            else:
+                return self.right_child.predict(predictors)
+
 
     def find_best_split(self, predictor_index):
         if predictor_index < 0 or predictor_index >= self.p:
@@ -164,6 +180,8 @@ class TreeNode:
                     right_responses = [self.responses[i] for i in range(self.N) if best_assignment[i] == 'R']
                     self.left_child  = TreeNode(left_predictors,  left_responses)
                     self.right_child = TreeNode(right_predictors, right_responses)
+                    self.split_index = best_split_index
+                    self.split_value = self.best_split_locations[best_split_index]
                     return True
                 else:
                     # In this case we can't make this leaf node any better by adding a split.

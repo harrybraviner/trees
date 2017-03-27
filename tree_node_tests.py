@@ -139,3 +139,34 @@ class TreeNodeTests(unittest.TestCase):
         self.assertAlmostEqual(3.1, tn.right_child.left_child.unsplit_prediction)
         self.assertAlmostEqual(2.9, tn.right_child.right_child.unsplit_prediction)
         self.assertEqual(False, tn.enact_best_split())
+
+    def test_predict_bad_length(self):
+        x1_vals = np.arange(0, 1.0, 0.05).tolist()
+        x2_vals = np.arange(0, 1.0, 0.05).tolist()
+        x0predictors = [x for x in x1_vals for y in x2_vals]
+        x1predictors = [y for x in x1_vals for y in x2_vals]
+        predictors = [x0predictors, x1predictors]
+        responses = [(0.0 if x < 0.5 else 0.1) if y < 0.5 else (3.1 if x < 0.5 else 2.9) for x in x1_vals for y in x2_vals]
+        tn = TreeNode(predictors, responses)
+        with self.assertRaises(ValueError):
+            tn.predict([0.0])
+        with self.assertRaises(ValueError):
+            tn.predict([0.0, 1.0, 0.0])
+        
+    def test_predict_checkerboard(self):
+        x1_vals = np.arange(0, 1.0, 0.05).tolist()
+        x2_vals = np.arange(0, 1.0, 0.05).tolist()
+        x0predictors = [x for x in x1_vals for y in x2_vals]
+        x1predictors = [y for x in x1_vals for y in x2_vals]
+        predictors = [x0predictors, x1predictors]
+        responses = [(0.0 if x < 0.5 else 0.1) if y < 0.5 else (3.1 if x < 0.5 else 2.9) for x in x1_vals for y in x2_vals]
+        tn = TreeNode(predictors, responses)
+        tn.enact_best_split()
+        tn.enact_best_split()
+        tn.enact_best_split()
+        self.assertEqual(0.0, tn.predict([0.05, 0.05]))
+        self.assertAlmostEqual(3.1, tn.predict([0.05, 0.95]))
+        self.assertAlmostEqual(0.1, tn.predict([0.95, 0.05]))
+        self.assertAlmostEqual(2.9, tn.predict([0.95, 0.95]))
+        
+        
